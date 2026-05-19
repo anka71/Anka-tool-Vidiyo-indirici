@@ -10,4 +10,3 @@ Kurulum için gerekli dosyalar ve komutlar:
 
 Çalıştırma:
 python ankavidiyoindirici.py
-![image alt](https://files.grok.x.ai/share/attachments/YVA4B/Edited%20Image.jpgl)
