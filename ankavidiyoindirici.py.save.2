@@ -1,0 +1,332 @@
+import os
+import sys
+import subprocess
+import time
+
+def clear():
+    os.system('clear')
+
+def banner():
+    print("\033[91m")
+    print("╔════════════════════════════════════════════╗")
+    print("║               ANKA TOOL                   ║")
+    print("║           Video İndirici                  ║")
+    print("╚════════════════════════════════════════════╝")
+    print("\033[0m")
+
+def platform_menu():
+    while True:
+        clear()
+        banner()
+
+        print("Platform Seçiniz:")
+        print("1 > Instagram  (01)")
+        print("2 > TikTok     (02)")
+        print("3 > YouTube    (03)")
+        print("4 > Pinterest  (04)")
+        print("0 > Çıkış      (00)")
+        print("99 > Geri Dön")
+
+        choice = input("\nNumara seçiniz: ").strip()
+
+        if choice in ["99", ""]:
+            return "99"
+
+        if choice in ["00", "0", "5"]:
+            return "exit"
+
+        if choice in ["1","01","2","02","3","03","4","04"]:
+            return choice
+
+        print("❌ Geçersiz seçim!")
+        time.sleep(1)
+
+def quality_menu():
+    while True:
+        clear()
+        banner()
+
+        print("Kalite Seçiniz:")
+        print("1 > 4K Video         (10)")
+        print("2 > 1080p Video      (09)")
+        print("3 > 720p Video       (08)")
+        print("4 > 480p Video       (07)")
+        print("5 > 360p Video       (06)")
+        print("6 > Sadece Ses MP3   (05)")
+        print("99 > Geri Dön")
+
+        choice = input("\nNumara yazınız: ").strip()
+
+        if choice == "99":
+            return "99"
+
+        if choice in ["10","09","9","08","8","07","7","06","6","05","5"]:
+            return choice
+
+        print("❌ Geçersiz seçim!")
+        time.sleep(1)
+
+def copy_to_clipboard(text):
+    try:
+        subprocess.run(
+            ['termux-clipboard-set', text],
+            check=True
+        )
+
+        print("✅ Link panoya kopyalandı!")
+        return True
+
+    except:
+        print("⚠️ Kopyalama başarısız.")
+        return False
+
+def get_format(quality_code):
+
+    if quality_code == "10":
+        return (
+            'bv*[height<=2160][ext=mp4]+ba[ext=m4a]/b[ext=mp4]',
+            "4K"
+        )
+
+    elif quality_code in ["09", "9"]:
+        return (
+            'bv*[height<=1080][ext=mp4]+ba[ext=m4a]/b[height<=1080][ext=mp4]',
+            "1080p"
+        )
+
+    elif quality_code in ["08", "8"]:
+        return (
+            'bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720][ext=mp4]',
+            "720p"
+        )
+
+    elif quality_code in ["07", "7"]:
+        return (
+            'bv*[height<=480][ext=mp4]+ba[ext=m4a]/b[height<=480][ext=mp4]',
+            "480p"
+        )
+
+    elif quality_code in ["06", "6"]:
+        return (
+            'bv*[height<=360][ext=mp4]+ba[ext=m4a]/b[height<=360][ext=mp4]',
+            "360p"
+        )
+
+    elif quality_code in ["05", "5"]:
+        return (
+            'bestaudio',
+            "MP3 Ses"
+        )
+
+    return ('best', 'Otomatik')
+
+def get_direct_link(url, quality_code):
+
+    clear()
+    banner()
+
+    print("🔄 Video hazırlanıyor...\n")
+
+    fmt, quality_name = get_format(quality_code)
+
+    try:
+
+        cmd = (
+            f'yt-dlp '
+            f'--no-warnings '
+            f'--no-playlist '
+            f'--ignore-errors '
+            f'-f "{fmt}" '
+            f'-g "{url}"'
+        )
+
+        output = subprocess.check_output(
+            cmd,
+            shell=True,
+            text=True
+        ).strip()
+
+        links = [
+            line for line in output.splitlines()
+            if line.startswith("http")
+        ]
+
+        direct_url = None
+
+        # Video seç
+        if quality_code != "05":
+
+            for link in links:
+
+                lower = link.lower()
+
+                if (
+                    "audio" not in lower and
+                    ".m4a" not in lower and
+                    "mime=audio" not in lower
+                ):
+                    direct_url = link
+                    break
+
+        else:
+            # Ses modu
+            direct_url = links[-1] if links else None
+
+        if not direct_url and links:
+            direct_url = links[0]
+
+        if direct_url:
+
+            print("✅ Video hazırlandı!")
+            print(f"📌 Kalite : {quality_name}")
+
+            print("\n📥 İndirme Linkiniz:")
+            print("=" * 90)
+            print(direct_url)
+            print("=" * 90)
+
+            print("\n[1] Linki Kopyala")
+            print("[2] Farklı kalite dene")
+            print("[0] Ana Menü")
+
+            while True:
+
+                sec = input("\nSeçiminiz: ").strip()
+
+                if sec == "1":
+
+                    copy_to_clipboard(direct_url)
+                    input("\nDevam etmek için Enter...")
+                    break
+
+                elif sec == "2":
+                    return "retry"
+
+                elif sec == "0":
+                    return "back"
+
+                else:
+                    print("❌ Geçersiz seçim!")
+
+        else:
+            print("❌ Link alınamadı.")
+
+    except Exception as e:
+        print("❌ Hata oluştu!")
+        print(str(e))
+
+    input("\nDevam etmek için Enter tuşuna basın...")
+
+def main():
+
+    # termux-api kontrol
+    if not os.path.exists(
+        "/data/data/com.termux/files/usr/bin/termux-clipboard-set"
+    ):
+
+        print("📦 termux-api kuruluyor...")
+        subprocess.call([
+            'pkg',
+            'install',
+            'termux-api',
+            '-y'
+        ])
+
+    while True:
+
+        plat_choice = platform_menu()
+
+        if plat_choice == "exit":
+
+            print("👋 Çıkılıyor...")
+            time.sleep(1)
+            sys.exit()
+
+        if plat_choice == "99":
+            continue
+
+        platforms = {
+            "1":"Instagram",
+            "01":"Instagram",
+            "2":"TikTok",
+            "02":"TikTok",
+            "3":"YouTube",
+            "03":"YouTube",
+            "4":"Pinterest",
+            "04":"Pinterest"
+        }
+
+        platform = platforms.get(plat_choice, "Video")
+
+        while True:
+
+            clear()
+            banner()
+
+            print(f"Seçilen Platform: {platform}")
+
+            url = input(
+                "\nVideo linkinizi giriniz:\n> "
+            ).strip()
+
+            if url.lower() == "99":
+                break
+
+            if not url.startswith(("http", "www")):
+
+                print("❌ Geçerli link giriniz!")
+                time.sleep(1.5)
+                continue
+
+            while True:
+
+                qual_choice = quality_menu()
+
+                if qual_choice == "99":
+                    break
+
+                result = get_direct_link(
+                    url,
+                    qual_choice
+                )
+
+                if result == "back":
+                    break
+
+                elif result != "retry":
+
+                    cevap = input(
+                        "\nBaşka video indirmek ister misin? (e/h): "
+                    ).lower().strip()
+
+                    if cevap == "h":
+
+                        print("👋 Çıkılıyor...")
+                        time.sleep(1)
+                        sys.exit()
+
+                    else:
+                        break
+
+if __name__ == "__main__":
+
+    try:
+
+        subprocess.check_call(
+            ['yt-dlp', '--version'],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL
+        )
+
+    except:
+
+        print("📦 yt-dlp kuruluyor...")
+
+        subprocess.call([
+            'pip',
+            'install',
+            '--upgrade',
+            'yt-dlp'
+        ])
+
+    main()
